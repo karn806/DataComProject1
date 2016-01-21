@@ -19,25 +19,34 @@ sock.send(request)
 while True:
 	data = sock.recv(1024)
 	print data
-	# index = data.find("Content-Length: ")
-	# # print index
-	# ContentLength = data[index:]
-	# #print ContentLength
-	# indexColon = ContentLength.find(":")
-	# numContentLength = ContentLength[indexColon+2:]
-	# # print numContentLength
-	# findBackrn = numContentLength.find("\r\n")
-	# sliceBackrn = numContentLength[:findBackrn]
-	# print "=========start========="
-	# print sliceBackrn
+	if "\r\n\r\n" in data:
+		index = data.find("Content-Length: ")
+		# print index
+		ContentLength = data[index:]
+		#print ContentLength
+		indexColon = ContentLength.find(":")
+		numContentLength = ContentLength[indexColon+2:]
+		# print numContentLength
+		findBackrn = numContentLength.find("\r\n")
+		pureContentLength = numContentLength[:findBackrn] #now pureContentLength is str type
+		print "=========start========="
+		# print pureContentLength
+		# print "===========End========"
+		indexOfrn = data.find("\r\n\r\n")
+		body = data[indexOfrn+4:]
+		# print body
+		# print "------------"
+		# print len(data), '-----len data'
+		print len(body),'---------len body'
+		print pureContentLength
 
-	# print "===========End========"
-	# indexOfrn = data.find("\r\n\r\n")
-	# outHeader = data[indexOfrn:]
-	# print "------------"
-	# print outHeader
-	# print "------------"
-	# print len(data)
+		if int(pureContentLength) == len(body):
+			print "download done"
+		sock.close()
+		break
 	# if len(data)==0:
 	sock.close()
 	break
+
+
+

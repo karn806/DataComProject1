@@ -1,0 +1,33 @@
+
+# create socket
+# bind socket
+# connect socket
+# send request
+
+# open file
+# get each piece of info from socket
+# write each oiece of info into file
+# when done
+# readfile and cur off header
+
+
+import socket
+
+HOST = "intranet.mahidol"
+PORT = 80
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST,PORT))
+s.listen(1)
+conn, addr = s.accept()
+print 'Connected by', addr
+
+while True:
+	data = conn.recv(1024)
+	with open('keepAllData.txt', 'w') as f:
+		f.write(data)
+	if not data:
+		with open('keepAllData.txt', 'r') as r:
+			print r.read()
+			socket.close()
+			break
+

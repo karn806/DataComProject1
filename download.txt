@@ -1,0 +1,28 @@
+'GET / HTTP/1.1\r\nHost: intranet.mahidol\r\n\r\n'
+HTTP/1.1 200 OK
+Content-Type: text/html
+Last-Modified: Tue, 12 Jan 2016 09:58:37 GMT
+Accept-Ranges: bytes
+ETag: "2a66bfce1f4dd11:0"
+Server: Microsoft-IIS/7.0
+X-Powered-By: ASP.NET
+Date: Thu, 14 Jan 2016 12:21:03 GMT
+Content-Length: 78905
+
+<!DOCTYPE html>
+<HEAD>
+<TITLE>Mahidol University</TITLE>
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<META HTTP-EQUIV="Expires" CONTENT="-1">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-874">
+<meta http-equiv="Content-Language" content="th">
+<link href="style-news.css" rel="stylesheet" type="text/css">
+<link href="fix_ios_scroll.css" rel="stylesheet" type="text/css">
+<script type='text/javascript' src="js/flexcroll.js"></script>
+<script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="js/swfobject.js"></script>
+<!--[if lt IE 9]>
+  <script type="text/javascript" src="/js/excanvas/excanvas.js"></script>
+<![endif]-->
+<script type="text/javascript" src="js/spinners/spinners.min.js
+===========End========
