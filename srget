@@ -41,7 +41,7 @@ def srget():
 
 	def rangeBytesRequest(serv, objName, sizeFile):
 		# sizeFile = os.path.getsize(file_)
-		return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile))
+		return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}-" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile))
 
 	#print "{!r}".format(mkDownloadRequest("intranet.mahidol", "/"))
 
@@ -56,24 +56,6 @@ def srget():
 
 	request = mkDownloadRequest(servName, path)
 	sock.send(request)
-
-
-
-	# if os.path.exists(inputName):
-	# # 	## is it modified yet?
-	# # 		## if yes, then check if the content is complete or not?
-	# # 		## if not, 	
-	# else:
-	# 	## create an empty socket
-	# 	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
-	# 	## connect to a destination as specified by the pair
-	# 	sock.connect((servName, port))
-
-	# 	request = mkDownloadRequest(servName, path)
-	# 	sock.send(request)
-
-
-
 
 
 
@@ -112,46 +94,48 @@ def srget():
 	def get_body(socket_input):
 		# header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
 		# ContentLength = getContentLength(header) ## type == str
+		header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
+		ContentLength = getContentLength(header) ## type == str
 		if os.path.exists(inputName):
-			header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
-			ContentLength = getContentLength(header) ## type == str
-			print 'hi'
-			print len(body)
 			## check size of the file
 			sizeFile = os.path.getsize(inputName)
 			if sizeFile != ContentLength:
-				# sock.close()
-
+				sock.close()
 				## create socket again
 				sock2 = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
-				## connect to a destination as specified by the pair
 				sock2.connect((servName, port))
 
 				request = rangeBytesRequest(servName, path, sizeFile)
 				sock2.send(request)
 
-				File = open(inputName, 'a+') # append
-				File.write(body)
-				File.flush()
+				header2, body2 = getHeader(sock2) ## get the rest from tuple(header, therest)
+
+				File2 = open(inputName, 'a+') # append
+				print len(body2), '--------1'
+				File2.write(body2)
+				File2.flush()
 				while True:
 					if len(body) == int(ContentLength):
 						print ContentLength, '----here!!'
-						File.close()
+						File2.close()
+						sock2.close()
 						break
-					chunk = sock.recv(1024)
-					body += chunk
-					File.write(chunk)
-					File.flush()
+					chunk2 = sock2.recv(1024)
+					body2 += chunk2
+					File2.write(chunk)
+					File2.flush()
 		else:
 
-			header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
-			ContentLength = getContentLength(header) ## type == str
+			# header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
+			# ContentLength = getContentLength(header) ## type == str
+			print len(body), '----------2'
 			File = open(inputName, 'a+') # append
 			File.write(body)
 			File.flush()
 			while True:
 				if len(body) == int(ContentLength):
 					File.close()
+					sock.close()
 					break
 				chunk = sock.recv(1024)
 				body += chunk
