@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # create socket
 # bind socket
@@ -11,23 +12,117 @@
 # readfile and cur off header
 
 
-import socket
+import socket as sk 
+import os
+import sys
+from urlparse import urlparse
 
-HOST = "intranet.mahidol"
-PORT = 80
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((HOST,PORT))
-s.listen(1)
-conn, addr = s.accept()
-print 'Connected by', addr
 
-while True:
-	data = conn.recv(1024)
-	with open('keepAllData.txt', 'w') as f:
-		f.write(data)
-	if not data:
-		with open('keepAllData.txt', 'r') as r:
-			print r.read()
-			socket.close()
-			break
+
+def srget():
+	inputName = sys.argv[2]
+	url = sys.argv[3]
+	urlLast = urlparse(url)
+	scheme = urlLast[0]
+	servName = urlLast[1]
+	path = urlLast[2]
+	port = urlLast.port
+	if scheme == 'https':
+		sys.exit(1)
+	if port==None:
+		port = 80
+	# objName = url[2]
+		
+
+
+
+	def mkDownloadRequest(serv, objName):
+		return ("GET {o} HTTP/1.1\r\n" + "Host: {s}"+"\r\n\r\n").format(o=objName, s=serv)
+
+	#print "{!r}".format(mkDownloadRequest("intranet.mahidol", "/"))
+
+	# servName = "intranet.mahidol"
+	# port = 80
+	
+	## create an empty socket
+	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
+	## connect to a destination as specified by the pair
+	sock.connect((servName, port))
+
+	request = mkDownloadRequest(servName, path)
+	sock.send(request)
+
+
+
+	def getHeader(socket_input):
+		content = ''
+		while True:
+			chunk = sock.recv(1024)
+			content+=chunk
+			if "\r\n\r\n" in content:
+				findrnrnIndex = content.find('\r\n\r\n')
+				header = content[:findrnrnIndex+4] ## start to end of header
+				therest = content[findrnrnIndex+4:] ## the firse few chunk of header
+				break
+		return header, therest #header, therest
+	# print getHeader(sock)
+
+	def getContentLength(header):
+		# print header
+		index = header.find("Content-Length: ")
+		# print index
+		ContentLength = header[index:]
+		#print ContentLength
+		indexColon = ContentLength.find(":")
+		numContentLength = ContentLength[indexColon+2:]
+		# print numContentLength
+		findBackrn = numContentLength.find("\r\n")
+		pureContentLength = numContentLength[:findBackrn]
+
+		return pureContentLength
+	# print getContentLength(sock)
+
+	def get_body(socket_input):
+		# print os.path.getsize(inputName)
+		header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
+		# print header, '----header'
+		# print body, '-------body'
+		ContentLength = getContentLength(header) ## type == str
+		# print ContentLength
+		# print ContentLength, '-------------cl'
+		# print len(body), '-------len(body)'
+		File = open(inputName, 'a+')
+		File.write(body)
+		File.flush()
+		while True:
+
+			if len(body) == int(ContentLength):
+			# if len(body) == int(ContentLength):
+				# print File.read(), '    ------'
+				File.close()
+				break
+			chunk = sock.recv(1024)
+			body += chunk
+			# print len(body), '-------len(body)'
+			File.write(chunk)
+			File.flush()
+		# print 'hi'
+		# return body
+	# print 'hi'
+	get_body(sock)
+
+srget()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
