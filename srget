@@ -10,7 +10,6 @@ def mkDownloadRequest(serv, objName, sizeFile):
 	return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+"Range: bytes={r}-"+"\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile))
 
 def rangeBytesRequest(serv, objName, sizeFile, end_point):
-	# sizeFile = os.path.getsize(file_)
 	return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}-{e}" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile), e=str(end_point))
 
 def mkHeaderRequest(serv, objName):
@@ -24,7 +23,6 @@ def open_socket(path, inputName, start_point):
 	port = url.port
 	if port==None:
 		port = 80
-
 	## create an empty socket
 	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
 	## connect to a destination as specified by the pair
@@ -43,12 +41,11 @@ def open_socket_resume(path, inputName, start_point, end_point):
 	port = url.port
 	if port==None:
 		port = 80
-
 	## create an empty socket
 	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
 	## connect to a destination as specified by the pair
 	sock.connect((servName, port))
-
+	### include start and end point to be able to know where to resume
 	request = rangeBytesRequest(servName, path, start_point, end_point)
 	sock.send(request)
 
@@ -72,6 +69,7 @@ def getHeaderOnly(servName, port):
 
 	return header
 
+### helper function to separate the header and some first chunk of body content
 def getHeader_theRest(socket_input):
 	content = ""
 	while True:
@@ -97,6 +95,9 @@ def getContentLength(header):
 
 
 ############################################################
+### helper function for finding content-length, ############
+### date last-midified and ETag of the file header.txt######
+############################################################
 
 def findContentLength(file_header):
 	header = open(file_header, "r")
@@ -109,6 +110,7 @@ def findContentLength(file_header):
 	return ContentLength
 
 def findETag(file_header):
+	etag = ""
 	header = open(file_header, "r")
 	for each_line in header:
 		if "ETag:" in each_line:
@@ -119,6 +121,7 @@ def findETag(file_header):
 	return etag
 
 def findDateModified(file_header):
+	dm = ""
 	header = open(file_header, "r")
 	for each_line in header:
 		if "Last-Modified:" in each_line:
@@ -138,6 +141,7 @@ def srget():
 	path = sys.argv[3]
 
 	if 'https' in path:
+		print "The link is https!!!"
 		sys.exit(1)
 	elif 'http://' not in path:
 		path = "http://"+path
@@ -148,63 +152,89 @@ def srget():
 		sizeFile = os.path.getsize(inputName)
 		input_header = inputName+"_header.txt"
 
+		### check whether the temp header file is still in the directory or not
+		### if it does then that means the download was not completed
+		### so start the resuming part here
 		if os.path.exists(input_header):
-			ContentLength = findContentLength(input_header) # call function that find CL from header.txt
+
+			### ask for Content-Length, date last-modified and ETag of the 
+			###	existing file (the one that's not completed) to check with the current one
+			### later if they are the same
+			ContentLength = findContentLength(input_header)
 			LastModified_from_headerfile = findDateModified(input_header)
 			ETag_from_headerfile = findETag(input_header)
+
+			#### open socket here
+			sock = open_socket_resume(path, inputName, sizeFile, ContentLength)
+
+			### get info from the current file that is downloading
+			header, body = getHeader_theRest(sock)
+			content_length = getContentLength(header)
+
+
+			## create temp current_header.txt
+			## to check for ETag and date Last-Modified of the currently downloading file
+			_header = "current_header.txt"
+			current_header = open(_header, "a+")
+			current_header.write(header)
+			current_header.flush()
+			current_header.close()
+
+			current_etag = findETag(_header)
+			current_dm = findDateModified(_header)
+
+			## remove the header file after done keeping data (last-modified, etag) in variables
+			os.remove(_header)
+
+
+			### check if the current and existing file are the same
+			if current_etag == ETag_from_headerfile:
+				### if the date last0modified are the same then start resuming,
+				###	if not then just pass this condition and download the whole thing again
+				if current_dm == LastModified_from_headerfile:
+					## if there is content-length in the header of the existing file
+					if ContentLength != None: 
+						# print "enter ContentLength"
+						## resume downloading file here
+						total_len = 0
+						#append the left over data from header to a file.txt first
+						File = open(inputName, 'a+')
+						File.write(body)
+						File.flush()
+						## combine the file size of the exisiting file and the length of
+						## the body that was just been appended in .txt file
+						total_len = sizeFile + len(body)
+						while True:
+							print 'total_len= ', total_len
+							print 'ContentLength= ', ContentLength
+							## loop until total length of the currently downloading file
+							## and the content-lenght in the header is the same
+							if total_len == int(ContentLength):
+								os.remove(input_header)
+								File.close()
+								sock.close()
+								print "Download complete!!!!"
+								### exit right after downloading preventing the process to
+								### continue running in the loop below
+								sys.exit(1)
+								# break
+							chunk = sock.recv(1024)
+							# print "chunk = ", len(chunk)
+							total_len += len(chunk)
+							File.write(chunk)
+							File.flush()
+		## if the existing header.txt is not there anymore, it means that the download 
+		## has already done and there is no need to procedd anymore
 		else:
 			print "Warning!!! File already existed!!!!!!!"
 			sys.exit(1)
 
 
-		#### open sock here
-		sock = open_socket_resume(path, inputName, sizeFile, ContentLength)
-
-		header, body = getHeader_theRest(sock)
-		content_length = getContentLength(header)
-
-
-		## create temp header.txt to check for ETag and date Last-Modified of the existing file
-		_header = "current_header.txt"
-		current_header = open(_header, "a+")
-		current_header.write(header)
-		current_header.flush()
-		current_header.close()
-
-		current_etag = findETag(_header)
-		current_dm = findDateModified(_header)
-
-		os.remove(_header)
-
-
-		if current_etag == ETag_from_headerfile:
-			if current_dm == LastModified_from_headerfile:
-				## if there is content-length.....
-				# print "before go in ContentLength.....", ContentLength
-				if ContentLength != None: 
-					print "enter ContentLength"
-					total_len = 0
-					File = open(inputName, 'a+') # append
-					File.write(body)
-					File.flush()
-					total_len = sizeFile + len(body)
-					while True:
-						print 'total_len= ', total_len
-						print 'ContentLength= ', ContentLength
-						if total_len == int(ContentLength):
-							os.remove(input_header)
-							File.close()
-							sock.close()
-							print "Download complete!!!!"
-							sys.exit(1)
-							# break
-						chunk = sock.recv(1024)
-						# print "chunk = ", len(chunk)
-						total_len += len(chunk)
-						File.write(chunk)
-						File.flush()
-
-
+	#### if file never existed
+	#### OR if file did exist but did not meet the requirement above....
+	####	- date last-modified have changed
+	####	- ETag is different
+	####	- no Content-Length
 	print 'enter if file does not exist'
 	sock = open_socket(path, inputName, 0)
 	
@@ -219,10 +249,12 @@ def srget():
 	fileHeader.close()
 
 	## start downloading here
-	File = open(inputName, 'a+') # append
+	File = open(inputName, 'a+')
 	File.write(body)
 	File.flush()
 	while True:
+		print "len(body) = ", len(body)
+		print "ContentLength = ", ContentLength
 		if len(body) == int(ContentLength):
 			os.remove(input_header)
 			File.close()
@@ -233,7 +265,6 @@ def srget():
 		body += chunk
 		File.write(chunk)
 		File.flush()
-	# return body
 
 srget()
 
