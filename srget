@@ -100,6 +100,7 @@ def getContentLength(header):
 ############################################################
 
 def findContentLength(file_header):
+	ContentLength = ""
 	header = open(file_header, "r")
 	for each_line in header:
 		if "Content-Length:" in each_line:
@@ -107,7 +108,7 @@ def findContentLength(file_header):
 			ContentLength = each_line[indexColon+2:]
 			break
 	header.close()
-	return ContentLength
+	return int(ContentLength)
 
 def findETag(file_header):
 	etag = ""
@@ -160,7 +161,7 @@ def srget():
 			### ask for Content-Length, date last-modified and ETag of the 
 			###	existing file (the one that's not completed) to check with the current one
 			### later if they are the same
-			ContentLength = findContentLength(input_header)
+			ContentLength = findContentLength(input_header) ## type int
 			LastModified_from_headerfile = findDateModified(input_header)
 			ETag_from_headerfile = findETag(input_header)
 
@@ -188,12 +189,48 @@ def srget():
 
 
 			### check if the current and existing file are the same
+			#### check if the ETag exist, if it is
+			#### check if the 2 are the same
 			if current_etag == ETag_from_headerfile:
-				### if the date last0modified are the same then start resuming,
-				###	if not then just pass this condition and download the whole thing again
+				## if there is content-length in the header of the existing file
+				if ContentLength != 0: 
+					# print "enter ContentLength"
+					## resume downloading file here
+					total_len = 0
+					#append the left over data from header to a file.txt first
+					File = open(inputName, 'a+')
+					File.write(body)
+					File.flush()
+					## combine the file size of the exisiting file and the length of
+					## the body that was just been appended in .txt file
+					total_len = sizeFile + len(body)
+					while True:
+						print 'total_len= ', total_len
+						print 'ContentLength= ', ContentLength
+						## loop until total length of the currently downloading file
+						## and the content-lenght in the header is the same
+						if total_len == int(ContentLength):
+							os.remove(input_header)
+							File.close()
+							sock.close()
+							print "Download complete"
+							### exit right after downloading preventing the process to
+							### continue running in the loop below
+							sys.exit(1)
+							# break
+						chunk = sock.recv(1024)
+						# print "chunk = ", len(chunk)
+						total_len += len(chunk)
+						File.write(chunk)
+						File.flush()
+
+			### if theres no ETag in the header then check the date last-modified instead
+			### if the date last-modified are the same then start resuming,
+			###	if not then just pass this condition and download the whole thing again
+			else:
 				if current_dm == LastModified_from_headerfile:
 					## if there is content-length in the header of the existing file
-					if ContentLength != None: 
+					if ContentLength != 0: 
 						# print "enter ContentLength"
 						## resume downloading file here
 						total_len = 0
@@ -213,7 +250,7 @@ def srget():
 								os.remove(input_header)
 								File.close()
 								sock.close()
-								print "Download complete!!!!"
+								print "Download complete"
 								### exit right after downloading preventing the process to
 								### continue running in the loop below
 								sys.exit(1)
@@ -223,6 +260,7 @@ def srget():
 							total_len += len(chunk)
 							File.write(chunk)
 							File.flush()
+
 		## if the existing header.txt is not there anymore, it means that the download 
 		## has already done and there is no need to procedd anymore
 		else:
@@ -259,7 +297,7 @@ def srget():
 			os.remove(input_header)
 			File.close()
 			sock.close()
-			print "Download complete!!!"
+			print "Download complete"
 			break
 		chunk = sock.recv(1024)
 		body += chunk
