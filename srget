@@ -187,11 +187,17 @@ def srget():
 			## remove the header file after done keeping data (last-modified, etag) in variables
 			os.remove(_header)
 
+			if current_etag == ETag_from_headerfile:
+				if current_dm == LastModified_from_headerfile:
+					etag_dm_status = True
+			if current_etag != ETag_from_headerfile:
+				if current_dm == LastModified_from_headerfile:
+					dm_status = True
 
 			### check if the current and existing file are the same
 			#### check if the ETag exist, if it is
 			#### check if the 2 are the same
-			if current_etag == ETag_from_headerfile:
+			if etag_dm_status == True or dm_status==True:
 				## if there is content-length in the header of the existing file
 				if ContentLength != 0: 
 					# print "enter ContentLength"
@@ -223,43 +229,6 @@ def srget():
 						total_len += len(chunk)
 						File.write(chunk)
 						File.flush()
-
-			### if theres no ETag in the header then check the date last-modified instead
-			### if the date last-modified are the same then start resuming,
-			###	if not then just pass this condition and download the whole thing again
-			else:
-				if current_dm == LastModified_from_headerfile:
-					## if there is content-length in the header of the existing file
-					if ContentLength != 0: 
-						# print "enter ContentLength"
-						## resume downloading file here
-						total_len = 0
-						#append the left over data from header to a file.txt first
-						File = open(inputName, 'a+')
-						File.write(body)
-						File.flush()
-						## combine the file size of the exisiting file and the length of
-						## the body that was just been appended in .txt file
-						total_len = sizeFile + len(body)
-						while True:
-							print 'total_len= ', total_len
-							print 'ContentLength= ', ContentLength
-							## loop until total length of the currently downloading file
-							## and the content-lenght in the header is the same
-							if total_len == int(ContentLength):
-								os.remove(input_header)
-								File.close()
-								sock.close()
-								print "Download complete"
-								### exit right after downloading preventing the process to
-								### continue running in the loop below
-								sys.exit(1)
-								# break
-							chunk = sock.recv(1024)
-							# print "chunk = ", len(chunk)
-							total_len += len(chunk)
-							File.write(chunk)
-							File.flush()
 
 		## if the existing header.txt is not there anymore, it means that the download 
 		## has already done and there is no need to procedd anymore
