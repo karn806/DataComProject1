@@ -1,153 +1,241 @@
 #!/usr/bin/env python
 
-# create socket
-# bind socket
-# connect socket
-# send request
-
-# open file
-# get each piece of info from socket
-# write each oiece of info into file
-# when done
-# readfile and cur off header
-
-
 import socket as sk 
 import os
 import sys
 from urlparse import urlparse
 
 
+def mkDownloadRequest(serv, objName, sizeFile):
+	return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+"Range: bytes={r}-"+"\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile))
 
-def srget():
-	inputName = sys.argv[2]
-	url = sys.argv[3]
-	urlLast = urlparse(url)
-	scheme = urlLast[0]
-	servName = urlLast[1]
-	path = urlLast[2]
-	port = urlLast.port
-	if scheme == 'https':
-		sys.exit(1)
+def rangeBytesRequest(serv, objName, sizeFile, end_point):
+	# sizeFile = os.path.getsize(file_)
+	return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}-{e}" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile), e=str(end_point))
+
+def mkHeaderRequest(serv, objName):
+	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+"\r\n\r\n").format(o=objName, s=serv)
+
+def open_socket(path, inputName, start_point):
+
+	url = urlparse(path)
+	servName = url[1]
+	object_ = url[2]
+	port = url.port
 	if port==None:
 		port = 80
-	# objName = url[2]
-		
-
-
-
-	def mkDownloadRequest(serv, objName):
-		return ("GET {o} HTTP/1.1\r\n" + "Host: {s}"+"\r\n\r\n").format(o=objName, s=serv)
-
-	def rangeBytesRequest(serv, objName, sizeFile):
-		# sizeFile = os.path.getsize(file_)
-		return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}-" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile))
-
-	#print "{!r}".format(mkDownloadRequest("intranet.mahidol", "/"))
-
-	# servName = "intranet.mahidol"
-	# port = 80
-
 
 	## create an empty socket
 	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
 	## connect to a destination as specified by the pair
 	sock.connect((servName, port))
 
-	request = mkDownloadRequest(servName, path)
+	request = mkDownloadRequest(servName, path, start_point)
 	sock.send(request)
 
+	return sock
+
+def open_socket_resume(path, inputName, start_point, end_point):
+
+	url = urlparse(path)
+	servName = url[1]
+	object_ = url[2]
+	port = url.port
+	if port==None:
+		port = 80
+
+	## create an empty socket
+	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
+	## connect to a destination as specified by the pair
+	sock.connect((servName, port))
+
+	request = rangeBytesRequest(servName, path, start_point, end_point)
+	sock.send(request)
+
+	return sock
 
 
-	def getHeader(socket_input):
-		content = ''
-		while True:
-			chunk = sock.recv(1024)
-			content+=chunk
-			if "\r\n\r\n" in content:
-				findrnrnIndex = content.find('\r\n\r\n')
-				header = content[:findrnrnIndex+4] ## start to end of header
-				therest = content[findrnrnIndex+4:] ## the firse few chunk of header
-				break
-		return header, therest #header, therest
-	# print getHeader(sock)
-
-	def getContentLength(header):
-		# print header
-		index = header.find("Content-Length: ")
-		# print index
-		ContentLength = header[index:]
-		#print ContentLength
-		indexColon = ContentLength.find(":")
-		numContentLength = ContentLength[indexColon+2:]
-		# print numContentLength
-		findBackrn = numContentLength.find("\r\n")
-		pureContentLength = numContentLength[:findBackrn]
-
-		return pureContentLength
-	# print getContentLength(sock)
-
-	# def getDateModified(header):
-	# 	###
+############################################################
 
 
-	def get_body(socket_input):
-		# header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
-		# ContentLength = getContentLength(header) ## type == str
-		header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
-		ContentLength = getContentLength(header) ## type == str
-		if os.path.exists(inputName):
-			## check size of the file
-			sizeFile = os.path.getsize(inputName)
-			if sizeFile != ContentLength:
-				sock.close()
-				## create socket again
-				sock2 = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
-				sock2.connect((servName, port))
+def getHeaderOnly(servName, port):
 
-				request = rangeBytesRequest(servName, path, sizeFile)
-				sock2.send(request)
+	## create an empty socket
+	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
+	## connect to a destination as specified by the pair
+	sock.connect((servName, port))
 
-				header2, body2 = getHeader(sock2) ## get the rest from tuple(header, therest)
+	request = mkHeaderRequest(servName, path)
+	sock.send(request)
 
-				File2 = open(inputName, 'a+') # append
-				print len(body2), '--------1'
-				File2.write(body2)
-				File2.flush()
-				while True:
-					if len(body) == int(ContentLength):
-						print ContentLength, '----here!!'
-						File2.close()
-						sock2.close()
-						break
-					chunk2 = sock2.recv(1024)
-					body2 += chunk2
-					File2.write(chunk)
-					File2.flush()
+	header = sock.recv(1024)
+
+	return header
+
+def getHeader_theRest(socket_input):
+	content = ""
+	while True:
+		chunk = socket_input.recv(1024)
+		content+=chunk
+		if "\r\n\r\n" in content:
+			findrnrnIndex = content.find('\r\n\r\n')
+			header = content[:findrnrnIndex+4] ## start to end of header
+			therest = content[findrnrnIndex+4:] ## the firse few chunk of header
+			break
+	return header, therest #header, therest
+
+
+def getContentLength(header):
+	index = header.find("Content-Length: ")
+	ContentLength = header[index:]
+	indexColon = ContentLength.find(":")
+	numContentLength = ContentLength[indexColon+2:]
+	findBackrn = numContentLength.find("\r\n")
+	pureContentLength = numContentLength[:findBackrn]
+
+	return pureContentLength
+
+
+############################################################
+
+def findContentLength(file_header):
+	header = open(file_header, "r")
+	for each_line in header:
+		if "Content-Length:" in each_line:
+			indexColon = each_line.find(":")
+			ContentLength = each_line[indexColon+2:]
+			break
+	header.close()
+	return ContentLength
+
+def findETag(file_header):
+	header = open(file_header, "r")
+	for each_line in header:
+		if "ETag:" in each_line:
+			indexColon = each_line.find(":")
+			etag = each_line[indexColon+2:]
+			break
+	header.close()
+	return etag
+
+def findDateModified(file_header):
+	header = open(file_header, "r")
+	for each_line in header:
+		if "Last-Modified:" in each_line:
+			indexColon = each_line.find(":")
+			dm = each_line[indexColon+2:]
+			break
+	header.close()
+	return dm
+
+############################################################
+
+
+## main
+def srget():
+
+	inputName = sys.argv[2]
+	path = sys.argv[3]
+
+	if 'https' in path:
+		sys.exit(1)
+	elif 'http://' not in path:
+		path = "http://"+path
+
+	if os.path.exists(inputName):
+		print 'enter if file alr exists'
+
+		sizeFile = os.path.getsize(inputName)
+		input_header = inputName+"_header.txt"
+
+		if os.path.exists(input_header):
+			ContentLength = findContentLength(input_header) # call function that find CL from header.txt
+			LastModified_from_headerfile = findDateModified(input_header)
+			ETag_from_headerfile = findETag(input_header)
 		else:
-
-			# header, body = getHeader(socket_input) ## get the rest from tuple(header, therest)
-			# ContentLength = getContentLength(header) ## type == str
-			print len(body), '----------2'
-			File = open(inputName, 'a+') # append
-			File.write(body)
-			File.flush()
-			while True:
-				if len(body) == int(ContentLength):
-					File.close()
-					sock.close()
-					break
-				chunk = sock.recv(1024)
-				body += chunk
-				File.write(chunk)
-				File.flush()
+			print "Warning!!! File already existed!!!!!!!"
+			sys.exit(1)
 
 
-	get_body(sock)
+		#### open sock here
+		sock = open_socket_resume(path, inputName, sizeFile, ContentLength)
+
+		header, body = getHeader_theRest(sock)
+		content_length = getContentLength(header)
+
+
+		## create temp header.txt to check for ETag and date Last-Modified of the existing file
+		_header = "current_header.txt"
+		current_header = open(_header, "a+")
+		current_header.write(header)
+		current_header.flush()
+		current_header.close()
+
+		current_etag = findETag(_header)
+		current_dm = findDateModified(_header)
+
+		os.remove(_header)
+
+
+		if current_etag == ETag_from_headerfile:
+			if current_dm == LastModified_from_headerfile:
+				## if there is content-length.....
+				# print "before go in ContentLength.....", ContentLength
+				if ContentLength != None: 
+					print "enter ContentLength"
+					total_len = 0
+					File = open(inputName, 'a+') # append
+					File.write(body)
+					File.flush()
+					total_len = sizeFile + len(body)
+					while True:
+						print 'total_len= ', total_len
+						print 'ContentLength= ', ContentLength
+						if total_len == int(ContentLength):
+							os.remove(input_header)
+							File.close()
+							sock.close()
+							print "Download complete!!!!"
+							sys.exit(1)
+							# break
+						chunk = sock.recv(1024)
+						# print "chunk = ", len(chunk)
+						total_len += len(chunk)
+						File.write(chunk)
+						File.flush()
+
+
+	print 'enter if file does not exist'
+	sock = open_socket(path, inputName, 0)
+	
+	header, body = getHeader_theRest(sock)
+	ContentLength = getContentLength(header)
+
+	#### create temp header txt file
+	input_header = inputName+"_header.txt"
+	fileHeader = open(input_header, "a+") ## keep header in the file
+	fileHeader.write(header)
+	fileHeader.flush()
+	fileHeader.close()
+
+	## start downloading here
+	File = open(inputName, 'a+') # append
+	File.write(body)
+	File.flush()
+	while True:
+		if len(body) == int(ContentLength):
+			os.remove(input_header)
+			File.close()
+			sock.close()
+			print "Download complete!!!"
+			break
+		chunk = sock.recv(1024)
+		body += chunk
+		File.write(chunk)
+		File.flush()
+	# return body
 
 srget()
-
-
 
 
 
