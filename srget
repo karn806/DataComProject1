@@ -15,25 +15,8 @@ def rangeBytesRequest(serv, objName, sizeFile, end_point):
 def mkHeaderRequest(serv, objName):
 	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+"\r\n\r\n").format(o=objName, s=serv)
 
-def open_socket(path, inputName, start_point):
 
-	url = urlparse(path)
-	servName = url[1]
-	object_ = url[2]
-	port = url.port
-	if port==None:
-		port = 80
-	## create an empty socket
-	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
-	## connect to a destination as specified by the pair
-	sock.connect((servName, port))
-
-	request = mkDownloadRequest(servName, path, start_point)
-	sock.send(request)
-
-	return sock
-
-def open_socket_resume(path, inputName, start_point, end_point):
+def open_socket(path, inputName, start_point, end_point):
 
 	url = urlparse(path)
 	servName = url[1]
@@ -83,15 +66,15 @@ def getHeader_theRest(socket_input):
 	return header, therest #header, therest
 
 
-def getContentLength(header):
-	index = header.find("Content-Length: ")
-	ContentLength = header[index:]
-	indexColon = ContentLength.find(":")
-	numContentLength = ContentLength[indexColon+2:]
-	findBackrn = numContentLength.find("\r\n")
-	pureContentLength = numContentLength[:findBackrn]
+# def getContentLength(header):
+# 	index = header.find("Content-Length: ")
+# 	ContentLength = header[index:]
+# 	indexColon = ContentLength.find(":")
+# 	numContentLength = ContentLength[indexColon+2:]
+# 	findBackrn = numContentLength.find("\r\n")
+# 	pureContentLength = numContentLength[:findBackrn]
 
-	return pureContentLength
+# 	return pureContentLength
 
 
 ############################################################
@@ -108,7 +91,7 @@ def findContentLength(file_header):
 			ContentLength = each_line[indexColon+2:]
 			break
 	header.close()
-	return int(ContentLength)
+	return ContentLength
 
 def findETag(file_header):
 	etag = ""
@@ -142,7 +125,7 @@ def srget():
 	path = sys.argv[3]
 
 	if 'https' in path:
-		print "The link is https!!!"
+		print "Unable to download the link"
 		sys.exit(1)
 	elif 'http://' not in path:
 		path = "http://"+path
@@ -166,7 +149,7 @@ def srget():
 			ETag_from_headerfile = findETag(input_header)
 
 			#### open socket here
-			sock = open_socket_resume(path, inputName, sizeFile, ContentLength)
+			sock = open_socket(path, inputName, sizeFile, ContentLength)
 
 			### get info from the current file that is downloading
 			header, body = getHeader_theRest(sock)
@@ -187,9 +170,9 @@ def srget():
 			## remove the header file after done keeping data (last-modified, etag) in variables
 			os.remove(_header)
 
+			### keep these conditions in variables so its easier to use later on
 			if current_etag == ETag_from_headerfile:
-				if current_dm == LastModified_from_headerfile:
-					etag_dm_status = True
+				etag_dm_status = True
 			if current_etag != ETag_from_headerfile:
 				if current_dm == LastModified_from_headerfile:
 					dm_status = True
@@ -243,17 +226,18 @@ def srget():
 	####	- ETag is different
 	####	- no Content-Length
 	print 'enter if file does not exist'
-	sock = open_socket(path, inputName, 0)
-	
-	header, body = getHeader_theRest(sock)
-	ContentLength = getContentLength(header)
+	sock = open_socket(path, inputName, 0, "")
 
+	header, body = getHeader_theRest(sock)
 	#### create temp header txt file
 	input_header = inputName+"_header.txt"
 	fileHeader = open(input_header, "a+") ## keep header in the file
 	fileHeader.write(header)
+	ContentLength = findContentLength(input_header)
 	fileHeader.flush()
 	fileHeader.close()
+
+	# ContentLength = getContentLength(header)
 
 	## start downloading here
 	File = open(inputName, 'a+')
