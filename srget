@@ -11,7 +11,14 @@ import socket as sk
 def mkHeaderRequest(serv, objName):
 	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+ "Cennection: close\r\n" + "\r\n\r\n").format(o=objName, s=serv)
 
-path = sys.argv[5]
+length_input = len(sys.argv)
+if length_input == 4:
+	connection_num = 1
+else:
+	connection_num = sys.argv[4]
+	connection_num = int(connection_num)
+
+path = sys.argv[length_input-1]
 url = urlparse(path)
 servName = str(url[1])
 object_ = str(url[2])
@@ -22,8 +29,7 @@ if port==None:
 ## declare inputName for the input filename that the user make
 inputName = sys.argv[2]
 ## connection number from input
-connection_num = sys.argv[4]
-connection_num = int(connection_num)
+
 
 ## if the link contain https exit the operation
 if 'https' in path:
