@@ -166,22 +166,21 @@ class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
 
 
 	def handle_connect(self):
-		print "Connection established"
+		# print "Connection established"
 		# self.logger.debug("connection established")
-
+		pass
 
 	def handle_close(self):
 		# self.logger.debug("got disconnected")
-		print "Got disconnected"
+		# print "Got disconnected"
 		if os.path.exists(input_header):
 			os.remove(input_header)
-		print "Download done."
+		# print "Download done."
 		self.close()
-
 
 	def handle_read(self): 
 		data = self.recv(1024)
-		print len(data)
+		# print len(data)
 		body = open(self.namefile, "a+")
 		if self.header_check == 1:
 			header, therest = getHeader_theRest(data)
@@ -212,7 +211,7 @@ class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
 
 
 ##### 
-
+header_only = getHeaderOnly(servName, port, path)
 
 ## condition before entering resume part
 if os.path.exists(inputName):
@@ -222,7 +221,10 @@ if os.path.exists(inputName):
 	LastModified_from_headerfile = findDateModified(input_header)
 	ETag_from_headerfile = findETag(input_header)
 
-	if ContentLength == os.path.getsize(inputName):
+	print "ContentLength = ", ContentLength
+	print "os.path.getsize(inputName)", os.path.getsize(inputName)
+
+	if int(ContentLength) == os.path.getsize(inputName):
 		print "File already exists"
 		sys.exit(1)
 		
@@ -262,7 +264,6 @@ if os.path.exists(inputName):
 # else:
 	# HTTPClient(servName, object_, port, 0, "")
 
-header_only = getHeaderOnly(servName, port, path)
 l_content_length = getContentLength(header_only)
 l_content_length = int(l_content_length)
 # each_row = l_content_length/(2**20)
