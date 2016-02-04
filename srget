@@ -7,7 +7,7 @@ import sys
 from urlparse import urlparse
 import socket as sk
 
-
+### request for header using HEAD request
 def mkHeaderRequest(serv, objName):
 	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+ "Cennection: close\r\n" + "\r\n\r\n").format(o=objName, s=serv)
 
@@ -24,13 +24,18 @@ object_ = str(url[2])
 port = url.port
 if port==None:
 	port = 80
+
+## declare inputName for the input filename that the user make
 inputName = sys.argv[2]
+## connection number from input
 connection_num = sys.argv[4]
 connection_num = int(connection_num)
 
+## if the link contain https exit the operation
 if 'https' in path:
 	print "Unable to download the link"
 	sys.exit(1)
+## if http:// is not in the path then add it 
 elif 'http://' not in path:
 	path = "http://"+path
 
@@ -38,6 +43,9 @@ input_header = inputName+"_header.txt"
 input_header2 = inputName+"_header2.txt"
 
 
+############################################################
+############ helper function ###############################
+############################################################
 def getHeaderOnly(servName, port, path):
 	## create an empty socket
 	sock = sk.socket(sk.AF_INET, sk.SOCK_STREAM)
@@ -121,6 +129,10 @@ def findDateModified(file_header):
 	# 		break
 	# header.close()
 	return dm
+############################################################
+############ helper function ###############################
+############################################################
+
 
 def make_request(req_type, what, details, sizeFile, end_point, version="1.1"): ## GET/HEAD , path , host, ver
     """ Compose an HTTP request """
@@ -153,7 +165,7 @@ class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
 		self.logger = logging.getLogger(host+path)
 
 		self.sendbuf = ""
-		# # make my request_line
+		## make my request_line
 		self.write(
 			make_request('GET', path, {"host": host, "Connection": "close"}, sizeFile, end_point) 
 			)
@@ -182,19 +194,25 @@ class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
 		data = self.recv(1024)
 		# print len(data)
 		body = open(self.namefile, "a+")
+		### header_check is just trigger to satisfy the if else condition
 		if self.header_check == 1:
+			### header for content in header
+			## therest for small chunk of content of body that comes along
 			header, therest = getHeader_theRest(data)
 			# print header, '--------'
-			body.write(therest)
+			body.write(therest) ## write that chunk in the file first
 			# print "body.write"
 			body.flush()
 			# print "body.flush"
 			if header!="":
+				## when the header is finish, make header_check = 0 so that
+				## the next time it runs into this function it will straight away
+				## go to else as we have already written the header, no need to write again
 				self.header_check = 0
 		else:
 			# if len(data) == 0:
 			# 	self.close()
-			body.write(data)
+			body.write(data) ### then write the rest data of the body
 			body.flush()
 			body.close()
 
@@ -210,7 +228,7 @@ class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
 
 
 
-##### 
+## call for HEAD request
 header_only = getHeaderOnly(servName, port, path)
 
 ## condition before entering resume part
@@ -266,18 +284,18 @@ if os.path.exists(inputName):
 
 l_content_length = getContentLength(header_only)
 l_content_length = int(l_content_length)
-# each_row = l_content_length/(2**20)
-# remainder_lastrow = (2**20)
-# print "each_row = ", each_row
-# print "remainder_lastrow = ", remainder_lastrow
 
+## split the input name in to name and type_file example .jpg .png etc
 name, type_file = inputName.split(".")
 
+## create a list to keep all client according to input connection number
 clients = []
 for i in range(connection_num):
-
+	## give each file a name so that you can use it later
 	file_name = name + str(i) + "." + type_file
+	## sizeFile is the starting point of downloading
 	sizeFile = ((l_content_length/connection_num)+1)*i
+	## end_point is the ending point of downloading
 	end_point =  sizeFile + (l_content_length/connection_num)
 	client = HTTPClient(servName, object_, port, sizeFile, end_point, file_name)
 	clients += [client]
@@ -285,29 +303,15 @@ for i in range(connection_num):
 asyncore.loop()
 
 
-# merge_file = open(inputName, "a+")
-content = ""
+content = "" ##content for keeping all the data in one chunk
 for j in range(connection_num):
 	each_file = name + str(j) + "." + type_file
 	with open(each_file, "r") as total:
 		data = total.read()
-		content += data
+		content += data ## keep all data in one chunk
 	os.remove(each_file)
+## append content into the file with input name from user
 with open(inputName, "a+") as merge_file:
 	merge_file.write(content)
 	merge_file.flush()
 
-
-# http://images.clipartpanda.com/lion-clipart-4Tb5XEETg.png
-# clients = [ ## simultineously download
-# 	HTTPClient("www.nytimes.com", "/", start,end") ,
-# 	HTTPClient("www.nytimes.com", "/") ,
-# 	HTTPClient("www.cnn.com", "/") ,
-# 	HTTPClient("www.wsj.com", "/")
-# ]
-
-# logging.basicConfig(level=logging.DEBUG,
-#     format="%(asctime)-15s %(name)s: %(message)s"
-#     )
- 
-# asyncore.loop()
