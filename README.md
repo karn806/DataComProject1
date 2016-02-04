@@ -4,9 +4,10 @@ when you run srget it will download the link input in this form
   --> srget -o <output file> [-c [<numConn>]] http://someurl.domain[:port]/path/to/file
 
 at first, 
-    it will check first if the input link is 'https' or not, 
-      if it is then exit the program
-    if the link contain no 'http://' then add it in front of the path
+it will check first if the input link is 'https' or not, 
+if it is then exit the program
+if the link contain no 'http://' then add it in front of the path
+
 then it will check first if the input file name has already existed:
   if it is, then check if the content length of currently download and the existing one is the same
     if it is,  then tell the user that the file has already exited
