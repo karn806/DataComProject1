@@ -62,7 +62,6 @@ def getHeader_theRest(input_data): ## input data
 		keep_header.write(header)
 		keep_header.flush()
 		keep_header.close()
-		# print "header = ", header
 		return header, therest
 
 def getContentLength(header):
@@ -145,80 +144,66 @@ def make_request(req_type, what, details, sizeFile, end_point, version="1.1"): #
     return full_request
 
 
-class HTTPClient(asyncore.dispatcher): ## inherit - extend in python style
+class HTTPClient(asyncore.dispatcher): 
 
-	def __init__(self, host, path, port, sizeFile, end_point, namefile): #header_check
-		asyncore.dispatcher.__init__(self)	## super -- call structure of super class , self is itself object
+	def __init__(self, host, path, port, sizeFile, end_point, namefile): 
+		asyncore.dispatcher.__init__(self)
 		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.connect((host, port))
 		self.host = host
 		self.namefile = namefile
-		self.length = 0
+		self.keep_data = ""
 		self.header_check = 1
 		self.recvbuf = StringIO()  ## it's like string builder
 		self.logger = logging.getLogger(host+path)
-
 		self.sendbuf = ""
 		## make my request_line
 		self.write(
 			make_request('GET', path, {"host": host, "Connection": "close"}, sizeFile, end_point) 
 			)
 
-
-		# self.write(mkDownloadRequest(host, path, sizeFile, end_point))
-
 	def write(self, msg):
 		self.sendbuf += msg
 
 
 	def handle_connect(self):
-		# print "Connection established"
-		# self.logger.debug("connection established")
 		pass
 
 	def handle_close(self):
-		# self.logger.debug("got disconnected")
-		# print "Got disconnected"
 		if os.path.exists(input_header):
 			os.remove(input_header)
-		# print "Download done."
 		self.close()
 
 	def handle_read(self): 
 		data = self.recv(1024)
-		# print len(data)
 		body = open(self.namefile, "a+")
 		### header_check is just trigger to satisfy the if else condition
 		if self.header_check == 1:
-			### header for content in header
+			## header for content in header
 			## therest for small chunk of content of body that comes along
 			header, therest = getHeader_theRest(data)
-			# print header, '--------'
 			body.write(therest) ## write that chunk in the file first
-			# print "body.write"
 			body.flush()
-			# print "body.flush"
 			if header!="":
 				## when the header is finish, make header_check = 0 so that
 				## the next time it runs into this function it will straight away
 				## go to else as we have already written the header, no need to write again
 				self.header_check = 0
 		else:
-			# if len(data) == 0:
-			# 	self.close()
-			body.write(data) ### then write the rest data of the body
+			### then write the rest data of the body into the file
+			body.write(data) 
 			body.flush()
 			body.close()
 
 
 		
-	def writeable(self): # if there is anything to send??
-		return len(self.sendbuf) > 0 ## you have sth to send
+	def writeable(self):
+		return len(self.sendbuf) > 0
 
 
 	def handle_write(self):
 		bytes_send = self.send(self.sendbuf)
-		self.sendbuf = self.sendbuf[bytes_send:] ## the remainder
+		self.sendbuf = self.sendbuf[bytes_send:]
 
 
 
@@ -232,9 +217,6 @@ if os.path.exists(inputName):
 	ContentLength = getContentLength(header_only) ## type int
 	LastModified_from_headerfile = findDateModified(input_header)
 	ETag_from_headerfile = findETag(input_header)
-
-	# print "ContentLength = ", ContentLength
-	# print "os.path.getsize(inputName)", os.path.getsize(inputName)
 
 	if int(ContentLength) == os.path.getsize(inputName):
 		print "File already exists"
@@ -292,6 +274,11 @@ for i in range(connection_num):
 	sizeFile = ((l_content_length/connection_num)+1)*i
 	## end_point is the ending point of downloading
 	end_point =  sizeFile + (l_content_length/connection_num)
+
+	# if i == connection_num-1:
+	# 	file_name_size = end_point - sizeFile
+	# else:
+	# 	file_name_size = (end_point - sizeFile) + 1
 	client = HTTPClient(servName, object_, port, sizeFile, end_point, file_name)
 	clients += [client]
 
