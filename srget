@@ -221,8 +221,8 @@ if os.path.exists(inputName):
 	LastModified_from_headerfile = findDateModified(input_header)
 	ETag_from_headerfile = findETag(input_header)
 
-	print "ContentLength = ", ContentLength
-	print "os.path.getsize(inputName)", os.path.getsize(inputName)
+	# print "ContentLength = ", ContentLength
+	# print "os.path.getsize(inputName)", os.path.getsize(inputName)
 
 	if int(ContentLength) == os.path.getsize(inputName):
 		print "File already exists"
