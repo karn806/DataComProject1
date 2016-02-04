@@ -278,10 +278,7 @@ if os.path.exists(inputName):
 
 l_content_length = getContentLength(header_only)
 l_content_length = int(l_content_length)
-<<<<<<< HEAD
 
-=======
->>>>>>> 5fdb507d73018967b5d8013bc37cec03ed770cc0
 
 ## split the input name in to name and type_file example .jpg .png etc
 name, type_file = inputName.split(".")
@@ -313,7 +310,3 @@ with open(inputName, "a+") as merge_file:
 	merge_file.write(content)
 	merge_file.flush()
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 5fdb507d73018967b5d8013bc37cec03ed770cc0
