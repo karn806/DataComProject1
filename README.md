@@ -28,3 +28,5 @@ then i append that variable into a file with input name
 
 then done! yay
 
+ps. i have not finished the resume part so it won't work for the resumable
+
