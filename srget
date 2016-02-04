@@ -11,12 +11,6 @@ import socket as sk
 def mkHeaderRequest(serv, objName):
 	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+ "Cennection: close\r\n" + "\r\n\r\n").format(o=objName, s=serv)
 
-# def rangeBytesRequest(serv, objName, sizeFile, end_point):
-	# return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Cennection: close\r\n" + "Range: bytes={r}-{e}" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile), e=str(end_point))
-
-# def mkDownloadRequest(serv, objName, sizeFile, end_point):
-# 	return ("GET {o} HTTP/1.1\r\n" + "Host: {s}\r\n" + "Range: bytes={r}-{e}" + "\r\n\r\n").format(o=objName, s=serv, r=str(sizeFile), e=str(end_point))
-
 path = sys.argv[5]
 url = urlparse(path)
 servName = str(url[1])
