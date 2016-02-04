@@ -12,9 +12,9 @@ def mkHeaderRequest(serv, objName):
 	return ("HEAD {o} HTTP/1.1\r\n" + "Host: {s}\r\n"+ "Cennection: close\r\n" + "\r\n\r\n").format(o=objName, s=serv)
 
 length_input = len(sys.argv)
-if length_input == 4:
+if length_input != 6:
 	connection_num = 1
-else:
+elif length_input == 6:
 	connection_num = sys.argv[4]
 	connection_num = int(connection_num)
 
